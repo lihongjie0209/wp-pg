@@ -75,7 +75,7 @@ Test MySQL protocol compatibility. Note: You may need to install MySQL client in
 # Test with telnet or nc
 docker-compose exec openhalo nc -zv localhost 3306
 
-# Or install mysql client and test
+# Or install mysql client and test (using credentials from docker-compose.yml)
 docker-compose exec -u root openhalo bash -c "apt-get update && apt-get install -y default-mysql-client"
 docker-compose exec openhalo mysql -h localhost -P 3306 -u halo -phalo123 -e "SELECT VERSION();"
 ```

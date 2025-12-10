@@ -41,6 +41,8 @@ services:
       WORDPRESS_DB_PASSWORD: halo123
       # Enable WordPress debugging (optional)
       WORDPRESS_DEBUG: 1
+      # NOTE: These credentials are for DEMO purposes only.
+      # In production, use environment files or secrets management.
     ports:
       - "8080:80"
     volumes:

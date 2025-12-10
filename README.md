@@ -4,22 +4,34 @@ This project demonstrates how to run WordPress with OpenHalo, a MySQL wire proto
 
 ## 🎯 Project Overview
 
-**OpenHalo** (https://www.openhalo.org/) is a compatibility layer that enables PostgreSQL to speak the MySQL wire protocol. This means:
-- WordPress connects thinking it's talking to MySQL
-- OpenHalo translates MySQL queries to PostgreSQL
-- You get PostgreSQL's performance and features with WordPress
+**OpenHalo** (https://www.openhalo.org/) is a modified PostgreSQL build that includes MySQL wire protocol support. **Important: OpenHalo IS PostgreSQL + MySQL protocol, not a separate proxy layer.**
+
+This means:
+- OpenHalo is a complete PostgreSQL database with built-in MySQL protocol support
+- WordPress connects via MySQL protocol (port 3306) without knowing it's PostgreSQL
+- You get PostgreSQL's performance and features with zero WordPress code changes
+- No separate PostgreSQL installation needed - OpenHalo includes everything
 
 ## 📋 Architecture
 
 ```
 WordPress (Port 8080)
     ↓ MySQL Wire Protocol (Port 3306)
-OpenHalo = PostgreSQL + MySQL Protocol Support
-    ↓ Internal Translation
-PostgreSQL Engine (Port 5432)
+    ↓
+OpenHalo (Single Process)
+├── MySQL Protocol Listener (Port 3306)
+├── PostgreSQL Protocol Listener (Port 5432)  
+├── aux_mysql Extension
+└── PostgreSQL Database Engine
 ```
 
-**Key Point:** OpenHalo IS PostgreSQL - it's a modified PostgreSQL build that includes MySQL protocol support, not a separate proxy layer.
+**Key Points:** 
+- ✅ OpenHalo IS a complete PostgreSQL database with MySQL protocol built-in
+- ✅ NOT a proxy or middleware - it's the actual database
+- ✅ Single process serving both MySQL and PostgreSQL protocols
+- ✅ No separate PostgreSQL installation needed
+
+For detailed architecture explanation, see [架构说明.md](./架构说明.md) (Chinese).
 
 ## 🚀 Quick Start
 
