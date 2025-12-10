@@ -1,56 +1,31 @@
-version: '3.8'
-
 services:
-  # PostgreSQL database
-  postgres:
-    image: postgres:16-alpine
-    container_name: wp-postgres
-    environment:
-      POSTGRES_DB: wordpress
-      POSTGRES_USER: wordpress
-      POSTGRES_PASSWORD: wordpress_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    ports:
-      - "5432:5432"
-    networks:
-      - wp-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wordpress"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # OpenHalo - MySQL protocol compatibility layer for PostgreSQL
-  # Note: This is a conceptual setup. In production, OpenHalo would need to be built from source
-  # For this demo, we use PostgreSQL directly and document the OpenHalo integration approach
+  # OpenHalo - PostgreSQL with MySQL protocol compatibility
+  # Built from official source: https://github.com/HaloTech-Co-Ltd/openHalo
+  # OpenHalo IS PostgreSQL, but with MySQL wire protocol support
   openhalo:
     build:
       context: ./openhalo
       dockerfile: Dockerfile
     container_name: wp-openhalo
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: wordpress
-      POSTGRES_USER: wordpress
-      POSTGRES_PASSWORD: wordpress_password
       MYSQL_PORT: 3306
+    volumes:
+      - openhalo_data:/home/halo/ohdata
     ports:
-      - "3306:3306"
+      - "5432:5432"  # PostgreSQL protocol port
+      - "3306:3306"  # MySQL protocol port (for WordPress)
     networks:
       - wp-network
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 3306 || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -p 5432 || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   # WordPress application
+  # Connects to OpenHalo via MySQL protocol (port 3306)
+  # No code changes required - WordPress thinks it's talking to MySQL
   wordpress:
     image: wordpress:latest
     container_name: wp-app
@@ -59,11 +34,13 @@ services:
         condition: service_healthy
     environment:
       # WordPress connects to OpenHalo on MySQL port 3306
-      # OpenHalo translates MySQL queries to PostgreSQL
+      # OpenHalo translates MySQL queries to PostgreSQL internally
       WORDPRESS_DB_HOST: openhalo:3306
-      WORDPRESS_DB_NAME: wordpress
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: wordpress_password
+      WORDPRESS_DB_NAME: postgres
+      WORDPRESS_DB_USER: halo
+      WORDPRESS_DB_PASSWORD: halo123
+      # Enable WordPress debugging (optional)
+      WORDPRESS_DEBUG: 1
     ports:
       - "8080:80"
     volumes:
@@ -75,9 +52,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
 
 volumes:
-  postgres_data:
+  openhalo_data:
     driver: local
   wordpress_data:
     driver: local

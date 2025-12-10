@@ -20,13 +20,18 @@ This document presents the findings, conclusions, and observations from testing 
 
 ### 1. MySQL Protocol Compatibility
 
-**Finding:** OpenHalo successfully translates MySQL wire protocol to PostgreSQL.
+**Finding:** OpenHalo successfully provides MySQL wire protocol compatibility on top of PostgreSQL.
 
 **Evidence:**
 - WordPress connects to OpenHalo on port 3306 (MySQL standard port)
 - Standard MySQL clients can connect to OpenHalo
 - WordPress database operations complete without errors
 - No WordPress code modifications required
+
+**Architecture Note:** OpenHalo is not a proxy layer - it's PostgreSQL with built-in MySQL protocol support. This is achieved through:
+- `database_compat_mode = 'mysql'` configuration
+- `mysql.listener_on = true` to enable MySQL protocol listener
+- `aux_mysql` extension for MySQL compatibility functions
 
 **Significance:** This demonstrates that applications built for MySQL can run on PostgreSQL with minimal changes, reducing migration risk and cost.
 
@@ -110,30 +115,36 @@ SELECT post_title, post_status FROM wp_posts;
 ```
 Application Layer:  WordPress (PHP)
                          ↓
-Protocol Layer:     OpenHalo (MySQL Wire Protocol)
+Protocol Layer:     MySQL Wire Protocol (Port 3306)
                          ↓
-Translation:        MySQL SQL Dialect → PostgreSQL SQL
+OpenHalo:          PostgreSQL + MySQL Compatibility
+                   - database_compat_mode = 'mysql'
+                   - mysql.listener_on = true
+                   - aux_mysql extension
                          ↓
 Storage Layer:      PostgreSQL Database Engine
 ```
 
 **Key Insights:**
 
-1. **Protocol Translation:** OpenHalo implements the MySQL wire protocol, allowing MySQL clients to connect without modification.
+1. **Integrated Design:** OpenHalo is a modified PostgreSQL build, not a separate proxy. The MySQL protocol support is built directly into PostgreSQL.
 
-2. **SQL Dialect Translation:** MySQL-specific SQL syntax is translated to PostgreSQL-compatible SQL on the fly.
+2. **Protocol Implementation:** OpenHalo implements the MySQL wire protocol listener that runs alongside PostgreSQL's native protocol on a different port.
 
-3. **Data Type Mapping:** MySQL data types are mapped to appropriate PostgreSQL types:
+3. **SQL Dialect Translation:** MySQL-specific SQL syntax is understood and executed within the PostgreSQL engine with compatibility mode enabled.
+
+4. **Data Type Mapping:** MySQL data types are mapped to appropriate PostgreSQL types:
    - `TINYINT` → `SMALLINT`
    - `DATETIME` → `TIMESTAMP`
    - `ENUM` → `VARCHAR` with constraints
    - `AUTO_INCREMENT` → `SERIAL`
 
-4. **Function Translation:** MySQL functions are translated to PostgreSQL equivalents:
+5. **Function Translation:** MySQL functions are translated to PostgreSQL equivalents via the aux_mysql extension:
    - `NOW()` remains `NOW()`
    - `CONCAT()` may use `||` operator
    - `DATE_FORMAT()` → `TO_CHAR()`
    - `IFNULL()` → `COALESCE()`
+   - MySQL-specific functions provided by aux_mysql extension
 
 ### Performance Benchmarks
 

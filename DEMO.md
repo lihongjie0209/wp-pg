@@ -46,12 +46,12 @@ wp-openhalo         wp-pg-openhalo      Up (healthy)        0.0.0.0:3306->3306/t
 wp-app              wordpress:latest    Up (healthy)        0.0.0.0:8080->80/tcp
 ```
 
-### Step 3: Verify PostgreSQL Backend
+### Step 3: Verify OpenHalo PostgreSQL Backend
 
-Connect to PostgreSQL and verify the database:
+Connect to OpenHalo via PostgreSQL protocol and verify:
 
 ```bash
-docker-compose exec postgres psql -U wordpress -d wordpress -c "\dt"
+docker-compose exec openhalo psql -p 5432 -U halo -d postgres -c "\dt"
 ```
 
 **Expected Output:**
@@ -60,18 +60,24 @@ Initially, no tables exist (WordPress hasn't been installed yet):
 Did not find any relations.
 ```
 
-Check PostgreSQL version:
+Check OpenHalo/PostgreSQL version and MySQL compatibility mode:
 
 ```bash
-docker-compose exec postgres psql -U wordpress -d wordpress -c "SELECT version();"
+docker-compose exec openhalo psql -p 5432 -U halo -d postgres -c "SELECT version();"
+docker-compose exec openhalo psql -p 5432 -U halo -d postgres -c "SHOW database_compat_mode;"
 ```
 
 ### Step 4: Verify OpenHalo MySQL Protocol
 
-Test MySQL protocol compatibility:
+Test MySQL protocol compatibility. Note: You may need to install MySQL client in the container first:
 
 ```bash
-docker-compose exec openhalo mysql -h localhost -P 3306 -u wordpress -pwordpress_password -e "SELECT VERSION();"
+# Test with telnet or nc
+docker-compose exec openhalo nc -zv localhost 3306
+
+# Or install mysql client and test
+docker-compose exec -u root openhalo bash -c "apt-get update && apt-get install -y default-mysql-client"
+docker-compose exec openhalo mysql -h localhost -P 3306 -u halo -phalo123 -e "SELECT VERSION();"
 ```
 
 **Expected Output:**
@@ -112,11 +118,11 @@ You should see OpenHalo responding to MySQL protocol commands while running on P
 
 ### Step 7: Verify Data in PostgreSQL
 
-After creating content, verify that it's stored in PostgreSQL:
+After creating content, verify that it's stored in OpenHalo/PostgreSQL:
 
 ```bash
 # List all tables created by WordPress
-docker-compose exec postgres psql -U wordpress -d wordpress -c "\dt"
+docker-compose exec openhalo psql -p 5432 -U halo -d postgres -c "\dt"
 ```
 
 **Expected Output:**
@@ -138,10 +144,10 @@ docker-compose exec postgres psql -U wordpress -d wordpress -c "\dt"
  public | wp_users                | table | wordpress
 ```
 
-Check WordPress posts stored in PostgreSQL:
+Check WordPress posts stored in PostgreSQL via OpenHalo:
 
 ```bash
-docker-compose exec postgres psql -U wordpress -d wordpress -c "SELECT post_title, post_status, post_type FROM wp_posts WHERE post_type IN ('post', 'page') AND post_status = 'publish';"
+docker-compose exec openhalo psql -p 5432 -U halo -d postgres -c "SELECT post_title, post_status, post_type FROM wp_posts WHERE post_type IN ('post', 'page') AND post_status = 'publish';"
 ```
 
 **Expected Output:**

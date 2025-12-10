@@ -13,11 +13,13 @@ This project demonstrates how to run WordPress with OpenHalo, a MySQL wire proto
 
 ```
 WordPress (Port 8080)
-    ↓
-OpenHalo (Port 3306) - MySQL Protocol Layer
-    ↓
-PostgreSQL (Port 5432) - Actual Database
+    ↓ MySQL Wire Protocol (Port 3306)
+OpenHalo = PostgreSQL + MySQL Protocol Support
+    ↓ Internal Translation
+PostgreSQL Engine (Port 5432)
 ```
+
+**Key Point:** OpenHalo IS PostgreSQL - it's a modified PostgreSQL build that includes MySQL protocol support, not a separate proxy layer.
 
 ## 🚀 Quick Start
 
@@ -81,21 +83,20 @@ PostgreSQL (Port 5432) - Actual Database
 
 ## 📊 Service Details
 
-### PostgreSQL
-- **Port**: 5432
-- **Database**: wordpress
-- **User**: wordpress
-- **Password**: wordpress_password
-
-### OpenHalo (MySQL Protocol Layer)
-- **Port**: 3306 (MySQL-compatible)
-- **Function**: Translates MySQL wire protocol to PostgreSQL
-- **Built from**: https://github.com/HaloTech-Co-Ltd/openHalo
+### OpenHalo (PostgreSQL with MySQL Protocol)
+- **PostgreSQL Port**: 5432
+- **MySQL Protocol Port**: 3306 (for WordPress)
+- **Database**: postgres
+- **User**: halo
+- **Password**: halo123
+- **Source**: Built from https://github.com/HaloTech-Co-Ltd/openHalo
+- **Function**: PostgreSQL database engine with MySQL wire protocol compatibility
 
 ### WordPress
 - **Port**: 8080
 - **URL**: http://localhost:8080
-- **Connects to**: OpenHalo (as if it were MySQL)
+- **Connects to**: OpenHalo via MySQL protocol on port 3306
+- **Notes**: WordPress thinks it's connecting to MySQL, no code changes needed
 
 ## 🛠️ Useful Commands
 
