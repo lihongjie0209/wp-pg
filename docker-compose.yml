@@ -1,0 +1,67 @@
+services:
+  # OpenHalo - PostgreSQL with MySQL protocol compatibility
+  # Built from official source: https://github.com/HaloTech-Co-Ltd/openHalo
+  # OpenHalo IS PostgreSQL, but with MySQL wire protocol support
+  openhalo:
+    build:
+      context: ./openhalo
+      dockerfile: Dockerfile
+    container_name: wp-openhalo
+    environment:
+      MYSQL_PORT: 3306
+    volumes:
+      - openhalo_data:/home/halo/ohdata
+    ports:
+      - "5432:5432"  # PostgreSQL protocol port
+      - "3306:3306"  # MySQL protocol port (for WordPress)
+    networks:
+      - wp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -p 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # WordPress application
+  # Connects to OpenHalo via MySQL protocol (port 3306)
+  # No code changes required - WordPress thinks it's talking to MySQL
+  wordpress:
+    image: wordpress:latest
+    container_name: wp-app
+    depends_on:
+      openhalo:
+        condition: service_healthy
+    environment:
+      # WordPress connects to OpenHalo on MySQL port 3306
+      # OpenHalo translates MySQL queries to PostgreSQL internally
+      WORDPRESS_DB_HOST: openhalo:3306
+      WORDPRESS_DB_NAME: postgres
+      WORDPRESS_DB_USER: halo
+      WORDPRESS_DB_PASSWORD: halo123
+      # Enable WordPress debugging (optional)
+      WORDPRESS_DEBUG: 1
+      # NOTE: These credentials are for DEMO purposes only.
+      # In production, use environment files or secrets management.
+    ports:
+      - "8080:80"
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - wp-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  openhalo_data:
+    driver: local
+  wordpress_data:
+    driver: local
+
+networks:
+  wp-network:
+    driver: bridge
