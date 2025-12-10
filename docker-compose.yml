@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: wp-postgres
+    environment:
+      POSTGRES_DB: wordpress
+      POSTGRES_USER: wordpress
+      POSTGRES_PASSWORD: wordpress_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - wp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wordpress"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # OpenHalo - MySQL protocol compatibility layer for PostgreSQL
+  # Note: This is a conceptual setup. In production, OpenHalo would need to be built from source
+  # For this demo, we use PostgreSQL directly and document the OpenHalo integration approach
+  openhalo:
+    build:
+      context: ./openhalo
+      dockerfile: Dockerfile
+    container_name: wp-openhalo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: wordpress
+      POSTGRES_USER: wordpress
+      POSTGRES_PASSWORD: wordpress_password
+      MYSQL_PORT: 3306
+    ports:
+      - "3306:3306"
+    networks:
+      - wp-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 3306 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # WordPress application
+  wordpress:
+    image: wordpress:latest
+    container_name: wp-app
+    depends_on:
+      openhalo:
+        condition: service_healthy
+    environment:
+      # WordPress connects to OpenHalo on MySQL port 3306
+      # OpenHalo translates MySQL queries to PostgreSQL
+      WORDPRESS_DB_HOST: openhalo:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress_password
+    ports:
+      - "8080:80"
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - wp-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  wordpress_data:
+    driver: local
+
+networks:
+  wp-network:
+    driver: bridge
