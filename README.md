@@ -167,11 +167,13 @@ docker-compose exec postgres pg_isready -U wordpress
 
 ## 📝 Demo Scenarios
 
-See [DEMO.md](./DEMO.md) for detailed demonstration scenarios and screenshots.
+- **English**: See [DEMO.md](./DEMO.md) for detailed demonstration scenarios and screenshots.
+- **中文**: 查看 [测试指南.md](./测试指南.md) 获取详细的演示步骤和测试指南。
 
 ## 📖 Conclusion
 
-See [CONCLUSION.md](./CONCLUSION.md) for test results, performance findings, and compatibility notes.
+- **English**: See [CONCLUSION.md](./CONCLUSION.md) for test results, performance findings, and compatibility notes.
+- **中文**: 查看 [结论报告.md](./结论报告.md) 获取测试结果、性能发现和兼容性说明。
 
 ## 🔗 References
 
